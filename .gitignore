@@ -1,0 +1,27 @@
+# Build Maven
+target/
+
+# IDE dan editor
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistem operasi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Rahasia dan file lokal
+.env
+.env.*
+*.log
+*.zip

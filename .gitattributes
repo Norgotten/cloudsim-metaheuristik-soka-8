@@ -1,0 +1,5 @@
+# Script shell harus LF, script Windows harus CRLF, supaya Maven Wrapper jalan di semua OS
+mvnw     text eol=lf
+*.sh     text eol=lf
+*.cmd    text eol=crlf
+*.png    binary
