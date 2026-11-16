@@ -16,11 +16,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 HASIL = ROOT / "hasil"
 GRAFIK = ROOT / "grafik"
-DATASET = ROOT / "src/main/resources/dataset/GoCJ_Dataset_1000.csv"
 
 ALGO = ["OOA", "CHOA", "OLB"]
 LABEL = {"OOA": "OOA", "CHOA": "ChOA", "OLB": "OLB"}
 WARNA = {"OOA": "#2a78d6", "CHOA": "#eb6834", "OLB": "#1baf7a"}
+TIPE = ["LARGE", "MEDIUM", "SMALL"]
+MIPS_TIPE = {"LARGE": 1000, "MEDIUM": 1000, "SMALL": 500}
+CORE_TIPE = {"LARGE": 2, "MEDIUM": 1, "SMALL": 1}
+# porsi kapasitas tiap tipe dari total 10.000 MIPS (2x2.000, 4x1.000, 4x500)
+KAPASITAS = {"LARGE": 40.0, "MEDIUM": 40.0, "SMALL": 20.0}
+
 SURFACE = "#fcfcfb"
 TEKS = "#0b0b0b"
 TEKS2 = "#52514e"
@@ -60,11 +65,20 @@ def persen(x, des=2):
     return angka(x, des) + " %"
 
 
+def bertanda(x, des=2):
+    return ("+" if x > 0 else "") + persen(x, des)
+
+
+def fmt_ribuan(des=0):
+    return matplotlib.ticker.FuncFormatter(lambda v, _: angka(v, des))
+
+
 # ---------------------------------------------------------------- data
 def muat():
-    hasil = pd.concat([pd.read_csv(HASIL / f"hasil_{a}.csv") for a in ALGO])
-    konv = pd.concat([pd.read_csv(HASIL / f"konvergensi_{a}.csv") for a in ["OOA", "CHOA"]])
-    vm = pd.concat([pd.read_csv(HASIL / f"vm_{a}.csv") for a in ALGO])
+    hasil = pd.concat([pd.read_csv(HASIL / f"hasil_{a}.csv") for a in ALGO], ignore_index=True)
+    konv = pd.concat([pd.read_csv(HASIL / f"konvergensi_{a}.csv") for a in ["OOA", "CHOA"]],
+                     ignore_index=True)
+    vm = pd.concat([pd.read_csv(HASIL / f"vm_{a}.csv") for a in ALGO], ignore_index=True)
     return hasil, konv, vm
 
 
@@ -76,6 +90,15 @@ def simpang(hasil, kolom):
     return hasil.groupby(["jumlah_task", "algoritma"])[kolom].std().unstack("algoritma")
 
 
+def porsi_mi(vm):
+    """Persentase total MI yang dikerjakan tiap tipe VM, rata-rata 3 run."""
+    d = vm.copy()
+    d["mi"] = d.waktu_sibuk * d.tipe.map(CORE_TIPE) * d.tipe.map(MIPS_TIPE)
+    g = d.groupby(["jumlah_task", "algoritma", "run", "tipe"]).mi.sum()
+    g = g / g.groupby(["jumlah_task", "algoritma", "run"]).transform("sum") * 100
+    return g.groupby(["jumlah_task", "algoritma", "tipe"]).mean()
+
+
 # ---------------------------------------------------------------- grafik
 def label_ujung(ax, df, jarak_pt=12):
     """Label nama algoritma di ujung kanan garis, digeser supaya tidak bertumpuk."""
@@ -83,13 +106,10 @@ def label_ujung(ax, df, jarak_pt=12):
     fig.canvas.draw()
     px_per_pt = fig.dpi / 72
     x = df.index[-1]
-    ujung = []
-    for a in df.columns:
-        y = df[a].iloc[-1]
-        ujung.append([a, y, ax.transData.transform((x, y))[1]])
-    ujung.sort(key=lambda u: u[2])
-    posisi = [u[2] for u in ujung]
+    ujung = sorted(([a, df[a].iloc[-1], ax.transData.transform((x, df[a].iloc[-1]))[1]]
+                    for a in df.columns), key=lambda u: u[2])
     jarak = jarak_pt * px_per_pt
+    posisi = [u[2] for u in ujung]
     for i in range(1, len(posisi)):
         posisi[i] = max(posisi[i], posisi[i - 1] + jarak)
     geser = (sum(u[2] for u in ujung) - sum(posisi)) / len(posisi)
@@ -121,28 +141,28 @@ def grafik_garis(df, judul, ylabel, nama, fmt_y=None, legenda="upper left"):
     plt.close(fig)
 
 
-def fmt_ribuan(des=0):
-    return matplotlib.ticker.FuncFormatter(lambda v, _: angka(v, des))
-
-
 def grafik_selisih(mk):
-    sel = pd.DataFrame({a: (mk["OLB"] - mk[a]) / mk["OLB"] * 100 for a in ["OOA", "CHOA"]})
-    fig, ax = plt.subplots(figsize=(8, 4.6))
+    """Positif = makespan lebih lama dari OLB, negatif = lebih cepat."""
+    sel = pd.DataFrame({a: (mk[a] - mk["OLB"]) / mk["OLB"] * 100 for a in ["OOA", "CHOA"]})
+    fig, ax = plt.subplots(figsize=(10, 4.8))
     lebar = 32
     for i, a in enumerate(["OOA", "CHOA"]):
         xs = sel.index + (i - 0.5) * (lebar + 2)
         bars = ax.bar(xs, sel[a], width=lebar, color=WARNA[a], label=LABEL[a])
         for b, v in zip(bars, sel[a]):
-            if v >= 10:
-                ax.annotate(angka(v, 1) + "%", (b.get_x() + b.get_width() / 2, v),
-                            xytext=(0, 3), textcoords="offset points", ha="center",
-                            fontsize=8, color=TEKS2)
+            if abs(v) >= 10:
+                ax.annotate(("+" if v > 0 else "") + angka(v, 0) + "%",
+                            (b.get_x() + b.get_width() / 2, v),
+                            xytext=(0, 3 if v > 0 else -11), textcoords="offset points",
+                            ha="center", fontsize=7.5, color=TEKS2)
     ax.axhline(0, color=TEKS2, linewidth=0.8)
-    ax.set_title("Makespan lebih pendek dibanding OLB")
+    ax.set_title("Makespan dibanding OLB")
     ax.set_xlabel("Jumlah task")
     ax.set_ylabel("Selisih terhadap OLB (%)")
+    ax.text(0.99, 0.03, "di atas 0 = lebih lama dari OLB\ndi bawah 0 = lebih cepat dari OLB",
+            transform=ax.transAxes, fontsize=8.5, color=TEKS2, ha="right", va="bottom")
     ax.set_xticks(sel.index)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", ncols=2)
     fig.tight_layout()
     fig.savefig(GRAFIK / "05_selisih_makespan_vs_olb.png", dpi=150)
     plt.close(fig)
@@ -151,9 +171,8 @@ def grafik_selisih(mk):
 
 def grafik_konvergensi(konv, hasil):
     olb = hasil[hasil.algoritma == "OLB"].groupby("jumlah_task").estimasi_makespan.mean()
-    ukuran = [100, 500, 1000]
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    for ax, n in zip(axes, ukuran):
+    for ax, n in zip(axes, [100, 500, 1000]):
         for a in ["OOA", "CHOA"]:
             s = konv[(konv.jumlah_task == n) & (konv.algoritma == a)].groupby("iterasi").best_fitness.mean()
             ax.plot(s.index, s.values, color=WARNA[a], linewidth=2, label=LABEL[a])
@@ -189,14 +208,36 @@ def grafik_waktu(hasil):
     plt.close(fig)
 
 
+def grafik_beban_vm(vm, n=1000):
+    """Waktu sibuk tiap VM pada n task (rata-rata 3 run)."""
+    sub = vm[vm.jumlah_task == n]
+    d = sub.groupby(["vm_id", "algoritma"]).waktu_sibuk.mean().unstack("algoritma")
+    tipe = sub.groupby("vm_id").tipe.first()
+    fig, ax = plt.subplots(figsize=(9, 4.8))
+    lebar = 0.26
+    for i, a in enumerate(ALGO):
+        ax.bar(d.index + (i - 1) * (lebar + 0.02), d[a], width=lebar, color=WARNA[a], label=LABEL[a])
+    ax.set_xticks(d.index)
+    ax.set_xticklabels([f"VM {j}\n{tipe[j]}" for j in d.index], fontsize=8.5)
+    ax.set_title(f"Waktu sibuk tiap VM pada {n} task (rata-rata 3 run)")
+    ax.set_ylabel("Detik")
+    ax.yaxis.set_major_formatter(fmt_ribuan())
+    ax.legend(loc="upper left", ncols=3)
+    fig.tight_layout()
+    fig.savefig(GRAFIK / "08_beban_per_vm.png", dpi=150)
+    plt.close(fig)
+    d["tipe"] = tipe
+    return d
+
+
 # ---------------------------------------------------------------- markdown
-def tabel_metrik(hasil, kolom, des, satuan=""):
+def tabel_metrik(hasil, kolom, des):
     m, s = rata(hasil, kolom), simpang(hasil, kolom)
     baris = ["| Jumlah task | OOA | ChOA | OLB |", "| :---: | :---: | :---: | :---: |"]
     for n in m.index:
         sel = []
         for a in ALGO:
-            teks = angka(m.loc[n, a], des) + satuan
+            teks = angka(m.loc[n, a], des)
             if a != "OLB":
                 teks += f" ± {angka(s.loc[n, a], des)}"
             sel.append(teks)
@@ -216,12 +257,33 @@ def tabel_detail(hasil, a):
     return "\n".join(baris)
 
 
-def tulis_md(hasil, sel):
+def tulis_md(hasil, konv, vm, sel, beban):
     w = rata(hasil, "waktu_scheduler_ms")
+    olb_mk = rata(hasil, "makespan")["OLB"]
+
     selisih = ["| Jumlah task | OOA | ChOA |", "| :---: | :---: | :---: |"]
     for n in sel.index:
-        selisih.append(f"| {n} | {persen(sel.loc[n, 'OOA'])} | {persen(sel.loc[n, 'CHOA'])} |")
-    selisih.append(f"| **Rata-rata** | **{persen(sel['OOA'].mean())}** | **{persen(sel['CHOA'].mean())}** |")
+        selisih.append(f"| {n} | {bertanda(sel.loc[n, 'OOA'])} | {bertanda(sel.loc[n, 'CHOA'])} |")
+
+    awal = ["| Jumlah task | Awal acak (iterasi 0) | OOA akhir | ChOA akhir | OLB |",
+            "| :---: | :---: | :---: | :---: | :---: |"]
+    for n in sorted(konv.jumlah_task.unique()):
+        k = konv[konv.jumlah_task == n]
+        a0 = k[k.iterasi == 0].best_fitness.mean()
+        ak = k[k.iterasi == k.iterasi.max()].groupby("algoritma").best_fitness.mean()
+        awal.append(f"| {n} | {angka(a0)} | {angka(ak['OOA'])} | {angka(ak['CHOA'])} | {angka(olb_mk[n])} |")
+
+    p = porsi_mi(vm)
+    porsi = ["| Jumlah task | Algoritma | LARGE | MEDIUM | SMALL |",
+             "| :---: | :---: | :---: | :---: | :---: |",
+             "| | *Porsi kapasitas* | *" + "* | *".join(persen(KAPASITAS[t], 0) for t in TIPE) + "* |"]
+    for n in sorted({i[0] for i in p.index}):
+        for a in ALGO:
+            porsi.append(f"| {n} | {LABEL[a]} | " + " | ".join(persen(p[(n, a, t)], 1) for t in TIPE) + " |")
+
+    bvm = ["| VM | Tipe | OOA | ChOA | OLB |", "| :---: | :---: | :---: | :---: | :---: |"]
+    for j, row in beban.iterrows():
+        bvm.append(f"| {j} | {row.tipe} | {angka(row.OOA)} | {angka(row.CHOA)} | {angka(row.OLB)} |")
 
     waktu = ["| Jumlah task | OOA | ChOA | OLB |", "| :---: | :---: | :---: | :---: |"]
     for n in w.index:
@@ -229,6 +291,7 @@ def tulis_md(hasil, sel):
                      f"{angka(w.loc[n, 'OLB'], 2)} |")
 
     est = (hasil.makespan - hasil.estimasi_makespan).abs() / hasil.makespan * 100
+    nl = "\n"
 
     teks = f"""# Hasil Pengujian
 
@@ -236,8 +299,8 @@ Berkas ini dibuat otomatis oleh `analisis/buat_grafik.py` dari CSV di folder `ha
 Pembahasan ada di [README.md](README.md#8-hasil-pengujian).
 
 Skenario: trace-driven, 100 sampai 1.000 task, 3 run per jumlah task, 30 run per algoritma.
-Nilai OOA dan ChOA ditulis sebagai rata-rata ± simpangan baku dari 3 run. OLB tidak diberi
-simpangan baku karena ketiga run-nya identik.
+OOA dan ChOA memakai populasi awal 100% acak, sesuai paper. Nilai OOA dan ChOA ditulis sebagai
+rata-rata ± simpangan baku dari 3 run. OLB tidak diberi simpangan baku karena ketiga run-nya identik.
 
 ## 1. Rata-rata 3 run
 
@@ -257,24 +320,43 @@ simpangan baku karena ketiga run-nya identik.
 
 {tabel_metrik(hasil, "degree_of_imbalance", 4)}
 
-## 2. Makespan lebih pendek dibanding OLB
+## 2. Makespan dibanding OLB
 
-Dihitung dari rata-rata 3 run: `(makespan OLB − makespan algoritma) / makespan OLB × 100%`.
+Dihitung dari rata-rata 3 run: `(makespan algoritma − makespan OLB) / makespan OLB × 100%`.
+Tanda **+** berarti lebih lama dari OLB, tanda **−** berarti lebih cepat.
 
-{chr(10).join(selisih)}
+{nl.join(selisih)}
 
-## 3. Waktu komputasi scheduler (milidetik, rata-rata 3 run)
+## 3. Titik awal acak dibanding hasil akhir (estimasi makespan, detik)
+
+"Awal acak" adalah rencana terbaik dari 30 agen acak sebelum iterasi pertama, rata-rata 3 run.
+OOA dan ChOA memakai populasi awal yang sama karena seed-nya sama.
+
+{nl.join(awal)}
+
+## 4. Porsi beban (MI) per tipe VM
+
+Persentase total MI yang dikerjakan tiap tipe VM, rata-rata 3 run. Baris pertama adalah porsi
+kapasitas tiap tipe dari total 10.000 MIPS. Makin dekat ke porsi kapasitas, makin seimbang bebannya.
+
+{nl.join(porsi)}
+
+## 5. Waktu sibuk tiap VM pada 1.000 task (detik, rata-rata 3 run)
+
+{nl.join(bvm)}
+
+## 6. Waktu komputasi scheduler (milidetik, rata-rata 3 run)
 
 Waktu yang dipakai algoritma untuk memutuskan pembagian task, sebelum simulasi CloudSim dijalankan.
 
-{chr(10).join(waktu)}
+{nl.join(waktu)}
 
-## 4. Akurasi estimasi makespan
+## 7. Akurasi estimasi makespan
 
 Selisih antara estimasi makespan (fitness) dan makespan hasil CloudSim pada seluruh 90 run:
 rata-rata {persen(est.mean(), 3)}, terbesar {persen(est.max(), 3)}.
 
-## 5. Grafik
+## 8. Grafik
 
 ![Makespan](grafik/01_makespan.png)
 
@@ -290,17 +372,19 @@ rata-rata {persen(est.mean(), 3)}, terbesar {persen(est.max(), 3)}.
 
 ![Waktu scheduler](grafik/07_waktu_scheduler.png)
 
-## 6. Data lengkap per run
+![Beban per VM](grafik/08_beban_per_vm.png)
 
-### 6.1 OOA
+## 9. Data lengkap per run
+
+### 9.1 OOA
 
 {tabel_detail(hasil, "OOA")}
 
-### 6.2 ChOA
+### 9.2 ChOA
 
 {tabel_detail(hasil, "CHOA")}
 
-### 6.3 OLB
+### 9.3 OLB
 
 {tabel_detail(hasil, "OLB")}
 """
@@ -312,8 +396,7 @@ def main():
     hasil, konv, vm = muat()
 
     mk = rata(hasil, "makespan")
-    grafik_garis(mk, "Makespan (rata-rata 3 run)", "Detik", "01_makespan.png",
-                 fmt_ribuan())
+    grafik_garis(mk, "Makespan (rata-rata 3 run)", "Detik", "01_makespan.png", fmt_ribuan())
     grafik_garis(rata(hasil, "total_cost"), "Total cost (rata-rata 3 run)", "USD",
                  "02_total_cost.png", fmt_ribuan())
     grafik_garis(rata(hasil, "resource_utilization"), "Resource utilization (rata-rata 3 run)",
@@ -324,7 +407,8 @@ def main():
     sel = grafik_selisih(mk)
     grafik_konvergensi(konv, hasil)
     grafik_waktu(hasil)
-    tulis_md(hasil, sel)
+    beban = grafik_beban_vm(vm)
+    tulis_md(hasil, konv, vm, sel, beban)
     print("Grafik tersimpan di grafik/, ringkasan di HASIL_PENGUJIAN.md")
 
 

@@ -22,7 +22,7 @@ import java.util.Random;
  * Catatan: pemimpin disimpan lintas iterasi dan hanya diganti kalau ada chimp
  * yang lebih baik, sehingga solusi terbaik tidak pernah hilang.
  *
- * Populasi awal acak. Kalau Config.INIT_WITH_OLB = true, satu agen diisi solusi OLB.
+ * Populasi awal 100% acak, sesuai paper.
  */
 public class ChoaScheduler implements Scheduler {
 
@@ -56,10 +56,6 @@ public class ChoaScheduler implements Scheduler {
         for (int i = 0; i < popSize; i++) {
             for (int d = 0; d < dim; d++) {
                 pos[i][d] = lb + rng.nextDouble() * (ub - lb);
-            }
-            if (i == 0 && Config.INIT_WITH_OLB) {
-                // inisialisasi hibrida: agen pertama = solusi OLB
-                pos[i] = fit.encode(new OlbScheduler().schedule(taskLengths, vms, seed).assignment(), rng);
             }
             updateLeaders(pos[i], fit.evaluate(pos[i]), leader, leaderFit);
         }

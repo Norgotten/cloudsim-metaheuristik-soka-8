@@ -105,18 +105,6 @@ public final class Fitness {
         return makespan;
     }
 
-    /**
-     * Ubah assignment (indeks VM) menjadi posisi agen. Posisinya diambil acak di
-     * dalam rentang VM tersebut, jadi hasil decode tetap sama persis dengan assignment.
-     */
-    public double[] encode(int[] assignment, java.util.Random rng) {
-        double[] x = new double[assignment.length];
-        for (int i = 0; i < x.length; i++) {
-            x[i] = lb + assignment[i] + 0.001 + 0.998 * rng.nextDouble();
-        }
-        return x;
-    }
-
     public double clamp(double x) {
         if (x < lb) return lb;
         if (x > ub) return ub;

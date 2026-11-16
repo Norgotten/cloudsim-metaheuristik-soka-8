@@ -58,8 +58,7 @@ public class Main {
         System.out.println("==============================================================");
         System.out.printf("  Algoritma : %s%n", alg);
         if (!alg.equals("OLB")) {
-            System.out.printf("  Populasi  : %d, Iterasi: %d, Inisialisasi OLB: %s%n",
-                    Config.POP_SIZE, Config.MAX_ITER, Config.INIT_WITH_OLB ? "ya" : "tidak");
+            System.out.printf("  Populasi  : %d, Iterasi: %d%n", Config.POP_SIZE, Config.MAX_ITER);
         }
         System.out.printf("  Task      : %s, Run: %d (dataset sekuensial)%n",
                 java.util.Arrays.toString(taskCounts), runs);

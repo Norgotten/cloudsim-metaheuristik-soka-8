@@ -23,18 +23,6 @@ public final class Config {
     public static final int MAX_ITER = Integer.getInteger("iter", 1000);
 
     /**
-     * Inisialisasi hibrida: kalau true, 1 dari 30 agen di populasi awal diisi
-     * solusi OLB, sisanya tetap acak. OOA/ChOA lalu memperbaikinya.
-     *
-     * Alasannya: dengan ratusan sampai 1.000 task, populasi yang 100% acak
-     * sulit mencapai solusi yang bagus karena setiap langkah mengubah posisi
-     * semua task sekaligus. Ubah ke false untuk versi murni sesuai paper
-     * (bisa juga lewat "-DinitOlb=false" tanpa mengubah file ini).
-     */
-    public static final boolean INIT_WITH_OLB =
-            Boolean.parseBoolean(System.getProperty("initOlb", "true"));
-
-    /**
      * Seed acak untuk satu run. Rumusnya tetap, jadi kalau dijalankan ulang
      * hasil OOA/ChOA akan sama persis (bisa direplikasi).
      */

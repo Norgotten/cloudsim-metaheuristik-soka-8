@@ -36,7 +36,7 @@
 7. [Empat metrik evaluasi](#7-empat-metrik-evaluasi)
 8. [Hasil pengujian](#8-hasil-pengujian)
 9. [Kesimpulan](#9-kesimpulan)
-10. [Keterbatasan](#10-keterbatasan)
+10. [Keterbatasan dan saran](#10-keterbatasan-dan-saran)
 11. [Menjalankan program](#11-menjalankan-program)
 12. [Struktur project](#12-struktur-project)
 13. [Referensi](#13-referensi)
@@ -113,7 +113,7 @@ OLB tidak melihat kecepatan VM saat memilih, dan tidak mencoba alternatif lain.
 
 ## 4. Penerapan metaheuristik ke penjadwalan
 
-OOA dan ChOA aslinya dibuat untuk mencari titik minimum sebuah fungsi angka. Supaya bisa menjadwalkan task, ada tiga hal yang perlu ditentukan.
+OOA dan ChOA aslinya dibuat untuk mencari titik minimum sebuah fungsi angka. Supaya bisa menjadwalkan task, ada beberapa hal yang perlu ditentukan.
 
 ### 4.1 Encoding: agen sebagai rencana pembagian task
 
@@ -128,6 +128,8 @@ VM            : [   8,    0,   5,    4, ... ]
 
 Rentang dibuat simetris di sekitar 0 supaya rumus fase 2 OOA bisa menggeser posisi ke dua arah.
 
+Sesuai paper OOA dan ChOA, populasi awal berisi 30 agen dengan posisi **acak** di rentang tersebut. Tidak ada agen yang diisi solusi dari algoritma lain, jadi OOA dan ChOA mencari pembagian task sepenuhnya dengan caranya sendiri.
+
 ### 4.2 Fitness: menilai rencana tanpa menjalankan CloudSim
 
 Selama pencarian, OOA dan ChOA menilai puluhan ribu rencana. Kalau setiap rencana disimulasikan di CloudSim, prosesnya akan sangat lama. Karena itu setiap rencana dinilai dengan **rumus cepat**:
@@ -139,11 +141,7 @@ Selama pencarian, OOA dan ChOA menilai puluhan ribu rencana. Kalau setiap rencan
 
 Rencana terbaik baru dijalankan di CloudSim **satu kali** untuk mendapatkan metrik resmi. Kolom `estimasi_makespan` dan `makespan` di CSV hasil bisa dibandingkan untuk menunjukkan bahwa rumus cepat ini akurat.
 
-### 4.3 Inisialisasi hibrida
-
-Dari 30 agen di populasi awal, **1 agen diisi solusi OLB** dan 29 sisanya acak. Alasannya: dengan ratusan sampai 1.000 task, setiap langkah OOA dan ChOA mengubah posisi semua task sekaligus, sehingga populasi yang 100% acak sulit mencapai solusi yang bagus. Pada uji coba awal (1 run per ukuran task), versi 100% acak hanya unggul dari OLB pada 100 task untuk OOA dan 100 sampai 300 task untuk ChOA, lalu kalah jauh di atasnya. Pada 1.000 task, makespan-nya sekitar 21.000 detik, sedangkan OLB 13.974 detik. Versi murni ini tetap bisa dijalankan (lihat [bagian 11](#11-menjalankan-program)).
-
-### 4.4 Alur program
+### 4.3 Alur program
 
 ```text
 Dataset GoCJ (N baris pertama)
@@ -233,57 +231,138 @@ Untuk OOA dan ChOA, dicatat juga **kurva konvergensi** dan **waktu komputasi sch
 
 ## 8. Hasil pengujian
 
-Seluruh 90 run (30 per algoritma) selesai tanpa error dan dijalankan ulang di dua komputer berbeda dengan hasil yang identik, karena seed acaknya tetap. Tabel lengkap setiap run, rata-rata, dan simpangan baku keempat metrik ada di [HASIL_PENGUJIAN.md](HASIL_PENGUJIAN.md). Data mentahnya ada di folder `hasil/`.
+Seluruh 90 run (30 per algoritma) selesai tanpa error. Hasilnya identik saat dijalankan ulang di dua komputer berbeda, karena seed acaknya tetap. Tabel lengkap setiap run ada di [HASIL_PENGUJIAN.md](HASIL_PENGUJIAN.md), data mentahnya di folder `hasil/`.
 
 ### 8.1 Ringkasan makespan
 
-Rata-rata 3 run, dalam detik. Angka tebal = metaheuristik yang lebih baik. Kolom "vs OLB" menunjukkan seberapa jauh makespan lebih pendek dibanding OLB.
+Rata-rata 3 run, dalam detik. Angka tebal = makespan terkecil di baris itu. Kolom "vs OLB": tanda **−** berarti lebih cepat dari OLB, tanda **+** berarti lebih lama.
 
 | Jumlah task | OOA | ChOA | OLB | OOA vs OLB | ChOA vs OLB |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| 100 | 1.716,61 | **1.361,41** | 2.727,20 | −37,06 % | −50,08 % |
-| 200 | 2.621,70 | **2.462,37** | 2.727,76 | −3,89 % | −9,73 % |
-| 300 | 4.543,62 | **4.133,03** | 5.150,64 | −11,79 % | −19,76 % |
-| 400 | 5.455,13 | **5.307,87** | 5.520,27 | −1,18 % | −3,85 % |
-| 500 | **6.747,30** | 6.812,42 | 6.905,91 | −2,30 % | −1,35 % |
-| 600 | 8.299,70 | **8.045,36** | 8.394,53 | −1,13 % | −4,16 % |
-| 700 | **9.058,76** | 9.246,23 | 9.715,47 | −6,76 % | −4,83 % |
-| 800 | 10.433,76 | **10.330,08** | 10.849,84 | −3,83 % | −4,79 % |
-| 900 | **11.758,47** | 11.822,41 | 12.090,53 | −2,75 % | −2,22 % |
-| 1000 | 13.541,20 | **13.326,11** | 13.973,89 | −3,10 % | −4,64 % |
-| **Rata-rata** | | | | **−7,38 %** | **−10,54 %** |
+| 100 | 1.657,85 | **1.338,57** | 2.727,20 | −39,21 % | −50,92 % |
+| 200 | 3.293,77 | **2.697,74** | 2.727,76 | +20,75 % | −1,10 % |
+| 300 | 5.441,48 | **4.580,76** | 5.150,64 | +5,65 % | −11,06 % |
+| 400 | 7.775,25 | 6.889,19 | **5.520,27** | +40,85 % | +24,80 % |
+| 500 | 10.037,26 | 9.166,93 | **6.905,91** | +45,34 % | +32,74 % |
+| 600 | 11.995,45 | 11.231,72 | **8.394,53** | +42,90 % | +33,80 % |
+| 700 | 14.172,29 | 13.031,27 | **9.715,47** | +45,87 % | +34,13 % |
+| 800 | 16.556,49 | 16.132,30 | **10.849,84** | +52,60 % | +48,69 % |
+| 900 | 18.714,43 | 18.637,04 | **12.090,53** | +54,79 % | +54,15 % |
+| 1000 | 21.781,68 | 21.860,72 | **13.973,89** | +55,87 % | +56,44 % |
 
 ![Makespan](grafik/01_makespan.png)
 
 ![Selisih makespan terhadap OLB](grafik/05_selisih_makespan_vs_olb.png)
 
-### 8.2 Makespan
+Ringkasnya:
 
-**OOA dan ChOA selalu menghasilkan makespan yang lebih pendek dari OLB** di kesepuluh ukuran task. Rata-rata, makespan OOA 7,38% lebih pendek dan ChOA 10,54% lebih pendek. ChOA unggul atas OOA di 7 dari 10 ukuran task, OOA unggul di 500, 700, dan 900 task.
+- **Di task sedikit, metaheuristik menang.** Pada 100 task, OOA 39,21% dan ChOA 50,92% lebih cepat dari OLB. ChOA juga masih menang di 200 dan 300 task.
+- **Mulai 400 task, OLB menang**, dan selisihnya makin besar seiring bertambahnya task. Pada 1.000 task, OOA dan ChOA sekitar 56% lebih lama dari OLB.
 
-Selisih terbesar ada di jumlah task kecil: 37,06% (OOA) dan 50,08% (ChOA) pada 100 task, lalu 11,79% dan 19,76% pada 300 task. Penyebabnya terlihat di data per VM: OLB memilih VM yang paling cepat kosong tanpa melihat panjang task, sehingga task ke-91 (900.000 MI, task terpanjang di dataset) jatuh ke VM 7 yang bertipe SMALL (500 MIPS). Task itu sendiri butuh 1.800 detik, dan VM 7 menjadi yang paling akhir selesai dengan waktu sibuk 2.726,65 detik. Hal yang sama terjadi di 200 task, sehingga makespan OLB di 100 dan 200 task hampir sama (sekitar 2.727 detik). OOA dan ChOA menilai rencana dari makespan keseluruhan, sehingga task panjang cenderung dipindahkan ke VM yang lebih cepat.
+Bagian 8.2 dan 8.3 menjelaskan kenapa bisa begitu, dengan bukti dari hasil pengujian sendiri dan dari paper.
 
-Mulai 400 task, selisihnya mengecil menjadi 1 sampai 7%. Ini karena OLB sendiri sudah mendekati batas teoritis. Batas bawah makespan dihitung sebagai yang lebih besar antara `total MI / 10.000 MIPS` (seluruh kapasitas terpakai penuh) dan `task terpanjang / 1.000 MIPS`. Angka ini batas bawah kasar dan belum tentu bisa dicapai.
+### 8.2 Kenapa metaheuristik menang di task sedikit
 
-| Jumlah task | Batas bawah (detik) | OLB | OOA | ChOA |
+Kelemahan OLB adalah tidak melihat panjang task. Pada 100 task, OLB mengirim task ke-91 (900.000 MI, task terpanjang di dataset) ke VM 7, yang bertipe SMALL (500 MIPS). Task itu sendiri butuh 1.800 detik, dan VM 7 baru selesai di detik ke-2.727, sementara sebagian besar VM lain sudah selesai sekitar detik ke-1.100. Hal yang sama terjadi di 200 task.
+
+Kelemahan ini cukup parah sampai-sampai pada 100 task, **rencana acak terbaik dari 30 agen sebelum iterasi pertama (2.190 detik) sudah lebih baik dari OLB (2.727 detik)**. OOA dan ChOA lalu memperbaikinya lagi menjadi 1.658 dan 1.339 detik.
+
+### 8.3 Kenapa metaheuristik kalah di task banyak
+
+#### Bukti dari hasil pengujian
+
+**1. Titik awalnya jauh lebih buruk dari OLB, dan perbaikannya tidak cukup.**
+
+Dengan populasi acak, setiap VM kebagian sekitar 10% task. Padahal kecepatan VM berbeda: VM SMALL hanya setengah kecepatan VM lain, jadi VM SMALL langsung kewalahan. Akibatnya, rencana acak terbaik di awal sudah hampir 2 kali lebih lama dari OLB.
+
+| Jumlah task | Awal acak (iterasi 0) | OOA akhir | ChOA akhir | OLB |
 | :---: | :---: | :---: | :---: | :---: |
-| 100 | 1.203 | +126,7 % | +42,7 % | +13,2 % |
-| 500 | 6.437 | +7,3 % | +4,8 % | +5,8 % |
-| 1000 | 12.966 | +7,8 % | +4,4 % | +2,8 % |
+| 100 | 2.190,83 | 1.655,83 | 1.336,00 | 2.727,20 |
+| 500 | 12.574,33 | 10.025,33 | 9.149,50 | 6.905,91 |
+| 1000 | 26.011,00 | 21.761,00 | 21.827,17 | 13.973,89 |
 
-Dengan banyak task, task-task kecil "mengisi celah" sehingga semua VM sibuk hampir sepanjang waktu, termasuk dengan OLB. Ruang untuk perbaikan tinggal beberapa persen.
+Angka di tabel adalah estimasi makespan (fitness), rata-rata 3 run. Pada 1.000 task, OOA dan ChOA berhasil memperbaiki rencana awal sekitar 16%, tetapi masih jauh dari OLB. Data lengkap semua ukuran task ada di bagian 3 [HASIL_PENGUJIAN.md](HASIL_PENGUJIAN.md).
 
-**Tidak ada satu pun run OOA atau ChOA yang lebih buruk dari OLB.** Ini dijamin oleh inisialisasi hibrida: solusi OLB ada di populasi awal, dan kedua algoritma tidak pernah membuang solusi terbaiknya. Ada 7 dari 60 run yang hasilnya sama persis dengan OLB, artinya algoritma tidak menemukan perbaikan: OOA pada (200 task, run 3), (400, run 3), (600, run 2), dan ChOA pada (500, run 1), (500, run 2), (700, run 3), (900, run 3).
+**2. Beban menumpuk di VM nomor tengah, sementara VM LARGE hampir menganggur.**
 
-**Kestabilan.** Simpangan baku makespan OOA antar run berkisar 42 sampai 224 detik, ChOA 20 sampai 406 detik. ChOA lebih sering menghasilkan makespan terbaik, tetapi hasilnya lebih bervariasi antar run, terutama di 600 dan 700 task.
+![Beban per VM](grafik/08_beban_per_vm.png)
 
-### 8.3 Total cost
+Pada 1.000 task, OLB membagi beban dengan sangat rata: semua VM sibuk antara 12.698 dan 13.970 detik. OOA dan ChOA tidak. VM 0 dan VM 1 (LARGE, VM tercepat dengan 2 core) hanya sibuk 3.677 sampai 5.617 detik, sedangkan VM 4 sampai VM 7 sibuk lebih dari 19.000 detik.
+
+| Algoritma (1.000 task) | Porsi beban di LARGE | MEDIUM | SMALL |
+| :--- | :---: | :---: | :---: |
+| *Porsi kapasitas (ideal)* | *40 %* | *40 %* | *20 %* |
+| OLB | 39,7 % | 39,9 % | 20,4 % |
+| OOA | 13,4 % | 56,5 % | 30,1 % |
+| ChOA | 15,2 % | 56,3 % | 28,5 % |
+
+Supaya makespan kecil, beban seharusnya dibagi sebanding kapasitas. OLB hampir pas, sedangkan OOA dan ChOA terlalu sedikit memakai VM LARGE dan terlalu banyak membebani VM MEDIUM dan SMALL.
+
+Penyebab yang paling mungkin ada di encoding (bagian 4.1). VM LARGE adalah nomor 0 dan 1, yaitu posisi −5 sampai −3, di **pinggir** rentang. VM 4 dan 5 ada di posisi sekitar 0, di **tengah**. Rumus gerak kedua algoritma cenderung menarik posisi ke arah tengah:
+
+- Di fase 1 OOA, rumus `x + r × (ikan − I × x)` dengan I = 2 mengecilkan bagian x. Contohnya dengan r = 0,5, hasilnya `0 × x + 0,5 × ikan`: posisi lama hilang dan yang tersisa hanya setengah posisi ikan, yang letaknya lebih dekat ke 0.
+- ChOA mengambil **rata-rata** dari 4 usulan posisi, dan rata-rata cenderung jatuh di tengah.
+
+Akibatnya task berkumpul di VM nomor tengah, dan VM LARGE di pinggir jarang dipilih.
+
+**3. Pencarian cepat berhenti membaik.**
+
+![Konvergensi](grafik/06_konvergensi.png)
+
+Pada kurva 1.000 task, kedua algoritma turun tajam di awal lalu datar di sekitar 21.800 detik, jauh di atas garis OLB (13.974 detik). Pada 500 dan 1.000 task, lebih dari 95% perbaikan OOA terjadi di 100 iterasi pertama. Sisa 900 iterasi hampir tidak menghasilkan apa-apa.
+
+**4. Menambah iterasi tidak menolong.**
+
+Untuk memastikan masalahnya bukan sekadar kurang iterasi, 1.000 task (run 1) dijalankan ulang dengan jumlah iterasi berbeda:
+
+| Iterasi | OOA (detik) | ChOA (detik) |
+| :---: | :---: | :---: |
+| 500 | 20.731,14 | 21.642,65 |
+| 1.000 | 20.731,14 | 21.627,93 |
+| 2.000 | 20.731,14 | 21.549,17 |
+| 5.000 | 20.731,14 | 21.549,16 |
+
+Hasil OOA **sama persis** dari 500 sampai 5.000 iterasi. ChOA hanya membaik 0,43% walaupun iterasinya dinaikkan 10 kali lipat. Uji ini bisa diulang dengan `.\mvnw.cmd compile exec:java "-Dexec.args=OOA 1000 1" "-Diter=5000"`.
+
+**5. Fitness-nya tidak salah.**
+
+Selisih antara estimasi makespan (fitness) dan makespan hasil CloudSim rata-rata hanya 0,132%, paling besar 0,263%. Artinya OOA dan ChOA memang mengoptimasi hal yang benar. Mereka kalah karena tidak berhasil menemukan pembagian yang bagus, bukan karena penilaiannya keliru.
+
+#### Bukti dari paper
+
+**1. No Free Lunch theorem.** Teorema ini (Wolpert & Macready, 1997) menyatakan bahwa tidak ada satu algoritma optimasi yang paling bagus untuk semua jenis masalah. Algoritma yang unggul di satu jenis masalah bisa kalah di jenis masalah lain. Paper OOA sendiri mengutip teorema ini di bagian pendahuluan sebagai alasan kenapa algoritma baru terus dikembangkan. Jadi metaheuristik kalah dari heuristik sederhana di kondisi tertentu adalah hal yang wajar.
+
+**2. Ukuran masalah jauh di luar yang diuji di paper.** Di masalah ini, jumlah dimensi sama dengan jumlah task.
+
+| | Paper OOA | Pengujian ini |
+| :--- | :---: | :---: |
+| Jumlah dimensi | 10, 30, 50, 100 | 100 sampai 1.000 |
+| Jatah evaluasi fitness | 10.000 × dimensi | 30.030 (ChOA) dan 60.030 (OOA), tetap |
+| Evaluasi per dimensi (1.000 task) | 10.000 | 30 (ChOA) dan 60 (OOA) |
+
+Pada 1.000 task, setiap dimensi hanya mendapat 30 sampai 60 evaluasi, jauh di bawah 10.000 seperti di paper. Namun bukti nomor 4 di atas menunjukkan bahwa menambah iterasi saja tidak cukup, jadi ukuran dimensi juga bukan satu-satunya penyebab.
+
+**3. Algoritmanya dirancang untuk angka kontinu, sedangkan penjadwalan itu diskrit.** OOA diuji pada fungsi CEC 2017 dan ChOA pada 30 fungsi benchmark. Semuanya fungsi dengan angka kontinu: menggeser posisi sedikit akan mengubah nilainya sedikit. Di penjadwalan, posisi harus dibulatkan menjadi nomor VM. Menggeser posisi dari 1,9 ke 2,1 tiba-tiba memindahkan task dari VM LARGE ke VM MEDIUM, sedangkan menggeser dari 2,1 ke 2,9 tidak mengubah apa-apa. Nomor VM juga tidak punya makna jarak: VM 1 dan VM 2 "berdekatan" di posisi, padahal tipenya berbeda. Ini membuat arah gerak yang dirancang di paper tidak lagi berarti "mendekati solusi yang lebih baik".
+
+#### Kenapa OLB justru kuat di task banyak
+
+OLB memutuskan task satu per satu dan selalu memilih VM yang paling cepat kosong. Dengan ratusan task, task-task kecil otomatis "mengisi celah" di VM yang sedang longgar, sehingga semua VM sibuk hampir sepanjang waktu. Pada 1.000 task, makespan OLB hanya 7,8% di atas batas bawah teoritis (12.966 detik, yaitu total MI dibagi total kapasitas 10.000 MIPS). Ruang untuk mengalahkan OLB tinggal sedikit, sedangkan OOA dan ChOA mulai dari rencana yang 2 kali lebih lama.
+
+### 8.4 OOA dibanding ChOA
+
+ChOA menghasilkan makespan lebih kecil dari OOA di 9 dari 10 ukuran task. OOA hanya unggul tipis di 1.000 task (21.781,68 berbanding 21.860,72 detik).
+
+Perbedaan paling jelas ada di kurva konvergensi. Perbaikan terakhir OOA umumnya terjadi sebelum iterasi 400, setelah itu datar. ChOA terus membaik sampai iterasi 800 sampai 960 pada 100 dan 500 task, karena nilai `f`-nya turun perlahan dari 2,5 ke 0, sehingga di iterasi akhir chimp mencari di sekitar pemimpin dengan langkah yang makin kecil. Pada 1.000 task, keduanya sama-sama mentok lebih awal: 99,6% perbaikan ChOA terjadi di 100 iterasi pertama.
+
+Soal kestabilan, simpangan baku makespan ChOA lebih kecil di task sedikit (54 detik berbanding 174 detik pada 100 task), tetapi lebih besar di 600 sampai 900 task (sampai 1.391 detik).
+
+### 8.5 Total cost
 
 ![Total cost](grafik/02_total_cost.png)
 
-Berbeda dengan makespan, **total cost ketiga algoritma hampir sama**. Mulai 400 task, selisih cost OOA dan ChOA terhadap OLB tidak lebih dari 0,9%. Selisih yang lebih besar hanya muncul di 100 task (OOA −5,13%, ChOA +3,81%), 200 task (ChOA +2,09%), dan 300 task (OOA −2,02%).
+Mulai 200 task, total cost OOA 15,8 sampai 25,6% lebih murah dari OLB, dan ChOA 4,3 sampai 23,7% lebih murah. Tetapi ini **bukan hasil optimasi**, karena fitness hanya melihat makespan. Ini efek samping dari VM LARGE yang jarang dipakai (bagian 8.3, bukti nomor 2).
 
-Ini karena cost hanya bergantung pada **berapa banyak MI yang dikerjakan di tiap tipe VM**, bukan pada urutan atau waktu selesainya. Karena setiap task memakai 1 core, biaya per 1.000 MI untuk setiap tipe VM adalah:
+Setiap task memakai 1 core, sehingga biaya per 1.000 MI berbeda untuk tiap tipe VM:
 
 | Tipe VM | Kecepatan per task | Tarif per detik | Biaya per 1.000 MI |
 | :--- | :---: | :---: | :---: |
@@ -291,67 +370,48 @@ Ini karena cost hanya bergantung pada **berapa banyak MI yang dikerjakan di tiap
 | MEDIUM | 1.000 MIPS | $0,05 | $0,05 |
 | LARGE | 1.000 MIPS | $0,12 | $0,12 |
 
-Untuk mendapat makespan sekecil mungkin, beban harus dibagi sebanding kapasitas VM: LARGE 40%, MEDIUM 40%, SMALL 20% dari total MIPS. Pada 1.000 task, ketiga algoritma memang berakhir di pembagian itu (porsi MI di LARGE/MEDIUM/SMALL: OLB 39,7/39,9/20,4%, OOA 39,5/40,1/20,4%, ChOA 39,2/40,5/20,3%), sehingga cost-nya juga hampir sama.
+VM LARGE adalah yang paling mahal per MI. Karena OOA dan ChOA hanya menaruh sekitar 13 sampai 15% beban di VM LARGE (OLB sekitar 40%), biayanya jadi lebih murah. Jadi OOA dan ChOA lebih murah karena **lebih lambat dan kurang memakai VM terbaik**, bukan karena lebih efisien.
 
-Pada 100 task, pembagiannya berbeda. OOA hanya menaruh 28,6% MI di VM LARGE yang paling mahal, sehingga cost-nya paling rendah. ChOA menaruh 37,6%, sehingga cost-nya paling tinggi. Fitness OOA dan ChOA hanya memperhitungkan makespan, jadi perbedaan cost ini efek samping, bukan hasil optimasi.
-
-### 8.4 Resource utilization
+### 8.6 Resource utilization
 
 ![Resource utilization](grafik/03_resource_utilization.png)
 
-Resource utilization OOA dan ChOA **lebih tinggi dari OLB di seluruh 10 ukuran task**. Perbedaan terbesar ada di 100 task: OLB 49,44%, OOA 74,83%, ChOA 89,28%. Pada OLB, sebagian besar VM sudah selesai sekitar detik ke-1.100 lalu menganggur, sementara VM 7 masih bekerja sampai detik ke-2.727. Mulai 400 task, ketiga algoritma berada di atas 90%.
+Pada 100 sampai 300 task, utilisasi OOA dan ChOA lebih tinggi dari OLB (pada 100 task: OLB 49,44%, OOA 75,69%, ChOA 89,69%), karena OLB menyisakan banyak VM menganggur sambil menunggu VM 7.
 
-Metrik ini bergerak searah dengan makespan. Total waktu sibuk VM hampir tetap untuk jumlah task yang sama, dan yang berubah adalah pembaginya (`10 × makespan`). Makespan yang lebih pendek otomatis membuat utilisasi lebih tinggi.
+Mulai 400 task, keadaannya terbalik. OLB tetap di atas 90%, sedangkan OOA dan ChOA turun sampai sekitar 72 sampai 74% pada 1.000 task. Penyebabnya sama: VM LARGE banyak menganggur sementara VM lain masih bekerja.
 
-### 8.5 Degree of imbalance
+### 8.7 Degree of imbalance
 
 ![Degree of imbalance](grafik/04_degree_of_imbalance.png)
 
-Pada 100 task, OOA (0,79) dan ChOA (0,41) jauh lebih seimbang dibanding OLB (1,26). Mulai 200 task, **hasilnya tidak konsisten**: ketiga algoritma berada di rentang 0,03 sampai 0,48, dan di beberapa ukuran OOA atau ChOA justru sedikit lebih timpang dari OLB, misalnya ChOA di 300 task (0,48 berbanding 0,41) dan 400 task (0,15 berbanding 0,09).
+Pada 100 task, OOA (0,92) dan ChOA (0,33) lebih seimbang dari OLB (1,26). Mulai 200 task, OLB jauh lebih seimbang. Mulai 400 task, OLB berada di 0,03 sampai 0,12, sedangkan OOA dan ChOA sekitar 0,8 sampai 1,1. Grafik ini cerminan langsung dari grafik beban per VM di bagian 8.3.
 
-Penyebabnya, fitness hanya melihat VM yang **paling lama** selesai. Degree of imbalance juga memperhitungkan VM yang **paling cepat** selesai. Sebuah rencana bisa memperpendek makespan sambil membiarkan satu VM lain sangat longgar, dan bagi fitness rencana itu tetap lebih baik.
-
-### 8.6 Konvergensi
-
-![Konvergensi](grafik/06_konvergensi.png)
-
-Kurva menunjukkan fitness terbaik (estimasi makespan) di setiap iterasi, rata-rata dari 3 run. Garis putus-putus adalah estimasi makespan OLB. Kedua algoritma berperilaku sangat berbeda:
-
-- **OOA cepat konvergen lalu berhenti membaik.** Hampir seluruh perbaikan terjadi di 100 iterasi pertama. Perbaikan terakhir terjadi antara iterasi 27 dan 288 di semua run yang ditampilkan, setelah itu nilainya datar sampai iterasi 1.000. Fase 2 OOA menggeser posisi sejauh `(lb + r(ub − lb)) / t`, sehingga di iterasi akhir geserannya terlalu kecil untuk memindahkan task ke VM lain.
-- **ChOA lambat di awal, lalu membaik tajam di akhir.** Pada 500 dan 1.000 task, ChOA tidak menemukan solusi yang lebih baik dari OLB selama ratusan iterasi pertama. Perbaikan pertama baru muncul di iterasi 673 sampai 841, dan di 2 dari 3 run pada 500 task tidak muncul sama sekali. Ini terjadi karena nilai `f` turun dari 2,5 ke 0. Selama `f` masih besar, chimp bergerak jauh dari pemimpin (eksplorasi), dan hasilnya hampir selalu lebih buruk. Setelah `f` kecil, chimp mencari di sekitar pemimpin (eksploitasi), dan di sinilah perbaikan terjadi. Pada 100 task, ChOA membaik secara bertahap sepanjang iterasi.
-
-Artinya, menambah iterasi kemungkinan besar tidak membantu OOA, tetapi bisa membantu ChOA karena fase eksploitasinya menjadi lebih panjang. Hal ini belum diuji.
-
-### 8.7 Waktu komputasi scheduler
+### 8.8 Waktu komputasi scheduler
 
 ![Waktu scheduler](grafik/07_waktu_scheduler.png)
 
-OLB memutuskan pembagian task dalam kurang dari 1 milidetik. OOA butuh 85 sampai 666 milidetik per run, ChOA 174 sampai 2.349 milidetik. Waktu ini diukur di laptop penguji, jadi angka absolutnya bergantung perangkat, tetapi perbandingannya tetap berlaku.
+OLB memutuskan pembagian task dalam kurang dari 1 milidetik. OOA butuh 97 sampai 995 milidetik per run, ChOA 183 sampai 2.512 milidetik. Angka absolutnya bergantung laptop penguji, tetapi perbandingannya tetap berlaku. Di task banyak, waktu komputasi tambahan ini tidak menghasilkan jadwal yang lebih baik.
 
-ChOA sekitar 3 kali lebih lambat dari OOA, padahal OOA melakukan evaluasi fitness 2 kali lebih banyak (60.030 berbanding 30.030 per run). Penyebab yang paling mungkin ada di rumus gerak: untuk setiap task, ChOA menghitung jarak ke 4 pemimpin dan membangkitkan 8 bilangan acak serta 4 nilai chaotic map, sedangkan OOA hanya membangkitkan 3 bilangan acak untuk kedua fasenya. Hal ini belum diukur secara terpisah.
-
-Dibanding waktu yang dihemat, biaya komputasi ini kecil. Pada 1.000 task, ChOA berpikir sekitar 2,3 detik untuk memperpendek makespan sekitar 648 detik.
-
-### 8.8 Akurasi estimasi fitness
-
-Selisih antara estimasi makespan yang dipakai sebagai fitness dan makespan hasil CloudSim rata-rata hanya 0,117%, paling besar 0,299%, di seluruh 90 run. Jadi rumus cepat di [bagian 4.2](#42-fitness-menilai-rencana-tanpa-menjalankan-cloudsim) cukup akurat menggantikan simulasi selama pencarian. Makespan CloudSim selalu sedikit lebih besar dari estimasi, kemungkinan karena CloudSim menambahkan jeda kecil yang tidak dimodelkan, misalnya waktu transfer file task.
+ChOA sekitar 2 sampai 4 kali lebih lambat dari OOA walaupun jumlah evaluasi fitness-nya hanya setengah OOA (30.030 berbanding 60.030). Penyebab yang paling mungkin: untuk setiap task, ChOA menghitung gerak terhadap 4 pemimpin sekaligus, sedangkan OOA hanya satu arah per fase. Hal ini belum diukur secara terpisah.
 
 ## 9. Kesimpulan
 
-1. OOA dan ChOA menghasilkan makespan lebih pendek dari OLB di seluruh ukuran task, rata-rata 7,38% (OOA) dan 10,54% (ChOA). Keunggulannya paling besar di jumlah task kecil, sampai 50,08% pada 100 task, karena OLB bisa menaruh task yang sangat panjang di VM yang lambat.
-2. Pada jumlah task besar, selisihnya tinggal beberapa persen karena OLB sudah dekat dengan batas teoritis. Pada 1.000 task, ChOA hanya 2,8% di atas batas bawah, OOA 4,4%, dan OLB 7,8%.
-3. ChOA lebih sering memberi makespan terbaik (7 dari 10 ukuran task), tetapi hasilnya lebih bervariasi antar run dan komputasinya sekitar 3 kali lebih lama dari OOA.
-4. Total cost ketiga algoritma hampir sama, karena untuk makespan minimum beban akhirnya dibagi sebanding kapasitas VM. Resource utilization metaheuristik selalu lebih tinggi karena mengikuti makespan. Degree of imbalance hanya jelas membaik di 100 task.
-5. OOA konvergen dalam sekitar 100 iterasi lalu berhenti membaik, sedangkan ChOA baru membaik di bagian akhir iterasi.
+1. **OOA dan ChOA unggul di task sedikit.** Pada 100 task, makespan OOA 39,21% dan ChOA 50,92% lebih cepat dari OLB, karena OLB bisa menaruh task sangat panjang di VM yang lambat. ChOA juga masih unggul di 200 dan 300 task.
+2. **Mulai 400 task, OLB unggul**, dan selisihnya makin besar sampai sekitar 56% pada 1.000 task.
+3. **Penyebab kekalahan terlihat di data:** mulai 500 task, rencana acak terbaik di awal sudah hampir 2 kali lebih lambat dari OLB, beban menumpuk di VM nomor tengah sementara VM LARGE hampir menganggur, pencarian berhenti membaik setelah sekitar 100 iterasi, dan menambah iterasi sampai 5.000 tidak mengubah hasil OOA sama sekali.
+4. **Hasil ini sejalan dengan teori dan paper:** No Free Lunch theorem menyatakan tidak ada algoritma yang selalu terbaik. OOA dan ChOA dirancang dan diuji untuk masalah kontinu dengan maksimal 100 dimensi, sedangkan penjadwalan di sini adalah masalah diskrit dengan sampai 1.000 dimensi.
+5. **ChOA lebih baik dari OOA** di 9 dari 10 ukuran task, tetapi komputasinya 2 sampai 4 kali lebih lama.
+6. Cost OOA dan ChOA lebih murah di task banyak, tetapi itu efek samping dari jarang memakai VM LARGE, bukan hasil optimasi.
 
-## 10. Keterbatasan
+## 10. Keterbatasan dan saran
 
-1. **Inisialisasi hibrida.** Satu agen di populasi awal diisi solusi OLB. Tanpa ini, versi murni hanya unggul dari OLB pada 100 task (OOA) dan 100 sampai 300 task (ChOA) di uji coba awal. Karena itu hasil di atas adalah hasil OOA dan ChOA yang **memperbaiki** OLB, bukan yang mencari dari nol.
-2. **Fitness hanya makespan.** Cost dan degree of imbalance tidak ikut dioptimasi, sehingga perbaikannya hanya efek samping.
+1. **Encoding sederhana.** Posisi langsung dibulatkan menjadi nomor VM. Encoding lain, misalnya posisi yang menentukan urutan task lalu VM dipilih dengan aturan tertentu, mungkin lebih cocok untuk OOA dan ChOA. Ini belum diuji.
+2. **Fitness hanya makespan.** Cost dan degree of imbalance tidak ikut dioptimasi.
 3. **Jumlah evaluasi tidak sama.** Populasi dan iterasi dibuat sama (30 dan 1.000), tetapi OOA mengevaluasi fitness 2 kali per agen per iterasi, sehingga total evaluasinya 2 kali lipat ChOA.
-4. **Parameter tidak di-tuning.** Populasi 30 dan iterasi 1.000 dipilih tanpa pengujian sensitivitas. Pola konvergensi ChOA menunjukkan hasilnya mungkin berubah dengan iterasi yang lebih banyak.
+4. **Parameter tidak di-tuning.** Populasi 30 dan iterasi 1.000 dipilih tanpa uji sensitivitas, selain uji jumlah iterasi di bagian 8.3.
 5. **3 run per ukuran task.** Cukup untuk melihat pola, tetapi terlalu sedikit untuk uji statistik.
 6. **Simulasi, bukan cloud nyata.** Semua task tersedia di awal, tidak ada overhead jaringan, dan kecepatan VM selalu tetap.
+7. **Saran: pendekatan hybrid.** Menggabungkan metaheuristik dengan heuristik, misalnya mengisi sebagian populasi awal dengan solusi OLB, adalah cara umum untuk mengatasi titik awal yang buruk di masalah besar. Pendekatan ini dibahas terpisah dan tidak termasuk dalam pengujian ini.
 
 ## 11. Menjalankan program
 
@@ -387,7 +447,6 @@ Urutannya bebas dan boleh dijalankan di waktu berbeda. Perkiraan waktu di laptop
 | :--- | :--- |
 | Tes cepat (100 task, 1 run) | `.\mvnw.cmd compile exec:java "-Dexec.args=OOA 100 1"` |
 | Jumlah task tertentu | `.\mvnw.cmd compile exec:java "-Dexec.args=OOA 100,500,1000 3"` |
-| Versi murni tanpa inisialisasi OLB | `.\mvnw.cmd compile exec:java "-Dexec.args=OOA" "-DinitOlb=false"` |
 | Ubah iterasi atau populasi | `.\mvnw.cmd compile exec:java "-Dexec.args=OOA" "-Diter=2000" "-Dpop=50"` |
 
 Pengaturan bawaan juga bisa diubah langsung di `Config.java`.
@@ -422,7 +481,7 @@ Semua hasil masuk ke folder `hasil/`:
 ├── HASIL_PENGUJIAN.md                    tabel lengkap hasil 90 run (dibuat otomatis)
 ├── mvnw, mvnw.cmd, .mvn/                 Maven Wrapper (tidak perlu instal Maven)
 ├── hasil/                                CSV hasil pengujian (hasil_, konvergensi_, vm_)
-├── grafik/                               7 grafik PNG
+├── grafik/                               8 grafik PNG
 ├── analisis/buat_grafik.py               pembuat grafik dan HASIL_PENGUJIAN.md
 └── src/main/
     ├── java/
@@ -444,5 +503,6 @@ Semua hasil masuk ke folder `hasil/`:
 
 1. Dehghani, M., & Trojovský, P. (2023). Osprey optimization algorithm: A new bio-inspired metaheuristic algorithm for solving engineering optimization problems. *Frontiers in Mechanical Engineering*, 8, 1126450. https://doi.org/10.3389/fmech.2022.1126450
 2. Khishe, M., & Mosavi, M. R. (2020). Chimp optimization algorithm. *Expert Systems with Applications*, 149, 113338. https://doi.org/10.1016/j.eswa.2020.113338
-3. Hussain, A., & Aleem, M. (2018). GoCJ: Google Cloud Jobs dataset for distributed and cloud computing infrastructures. *Data*, 3(4), 38. https://doi.org/10.3390/data3040038
-4. CloudSim Plus. https://cloudsimplus.org
+3. Wolpert, D. H., & Macready, W. G. (1997). No free lunch theorems for optimization. *IEEE Transactions on Evolutionary Computation*, 1(1), 67–82. https://doi.org/10.1109/4235.585893
+4. Hussain, A., & Aleem, M. (2018). GoCJ: Google Cloud Jobs dataset for distributed and cloud computing infrastructures. *Data*, 3(4), 38. https://doi.org/10.3390/data3040038
+5. CloudSim Plus. https://cloudsimplus.org

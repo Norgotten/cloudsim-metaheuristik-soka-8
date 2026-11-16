@@ -19,7 +19,7 @@ import java.util.Random;
  *   x_baru = x + (lb + r * (ub - lb)) / t
  * Di kedua fase, posisi baru hanya diterima kalau fitness-nya lebih baik.
  *
- * Populasi awal acak. Kalau Config.INIT_WITH_OLB = true, satu agen diisi solusi OLB.
+ * Populasi awal 100% acak, sesuai paper.
  */
 public class OoaScheduler implements Scheduler {
 
@@ -52,10 +52,6 @@ public class OoaScheduler implements Scheduler {
         for (int i = 0; i < popSize; i++) {
             for (int d = 0; d < dim; d++) {
                 pos[i][d] = lb + rng.nextDouble() * (ub - lb);
-            }
-            if (i == 0 && Config.INIT_WITH_OLB) {
-                // inisialisasi hibrida: agen pertama = solusi OLB
-                pos[i] = fit.encode(new OlbScheduler().schedule(taskLengths, vms, seed).assignment(), rng);
             }
             f[i] = fit.evaluate(pos[i]);
             if (f[i] < bestFit) {
